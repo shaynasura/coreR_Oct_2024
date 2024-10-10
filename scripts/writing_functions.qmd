@@ -1,0 +1,210 @@
+---
+title: "writing_functions"
+author: "Shayna A. Sura"
+format: 
+  html:
+    toc: true
+    code-fold: true
+    embed-resources: true
+---
+
+## load libaries
+
+```{r}
+
+# library(dplyr)
+# library(tidyr)
+# library(ggplot2)
+library(tidyverse)
+
+```
+
+
+# Temperature Conversion
+
+```{r}
+
+airtemps <- c(212, 30.3, 78, 32)
+
+celsius1 <- (airtemps[1] - 32) * 5/9
+celsius2 <- (airtemps[2] - 32) * 5/9
+celsius3 <- (airtemps[3] - 32) * 5/9
+
+celsius1
+celsius2
+celsius3
+
+```
+
+
+
+# create a function to do this calculation
+
+```{r}
+
+convert_f_to_c <- function(fahr) {
+  celsius <- (fahr - 32) * 5/9
+  return(celsius)
+}
+
+```
+
+
+
+# check that the function matches the calculation from above
+```{r}
+
+celsius1a <- convert_f_to_c(airtemps[1])
+
+celsius1a
+
+celsius1 == celsius1a
+
+convert_f_to_c(airtemps)
+
+```
+
+
+### Exercise: convert celsius to fahrenheit
+
+```{r}
+
+convert_c_to_f <- function(celsius) {
+  fahr <- (celsius * 9/5) + 32
+  return(fahr)
+}
+
+celsius_values <- c(100,-0.94444,25.555556,0)
+
+convert_c_to_f(celsius_values)
+
+```
+
+
+```{r}
+
+convert_temps <- function(fahr) {
+  celsius <- (fahr - 32) * 5/9
+  # celsius <- convert_f_to_c(fahr)  # could use the function we created earlier
+  kelvin <- celsius + 273.15
+  return(list(f = fahr,
+              c = celsius,
+              k = kelvin))
+}
+
+t_vec <- c(-100, -40, 0 , 32, 98.6, 212)
+
+convert_temps(fahr = t_vec)
+
+data.frame(convert_temps(t_vec))
+
+```
+
+
+## Write more complicated function that can take temperatures in celsius or Fahrenheit and convert to C, F, and Kelvin
+```{r}
+
+convert_temps2 <- function(temp, unit = 'F') {
+  ### error checking
+  unit <- toupper(unit)
+  if(!unit %in% c("C", "F")) stop("Unit must be C or F")
+  
+  if(unit == "F") {
+    # convert F to C
+    fahr <- temp
+    celsius <- convert_f_to_c(temp)
+  } else {
+    # convert C to F
+    celsius <- temp
+    fahr <- convert_c_to_f(temp)
+  }
+  kelvin <- celsius + 273.15
+  
+  out_df <- data.frame(fahr, celsius, kelvin)
+  return(out_df)
+}
+
+```
+
+
+
+## Test out new function
+```{r}
+
+c_temps_df <- convert_temps2(temp = t_vec, unit = "C")
+c_temps_df
+
+f_temps_df <- convert_temps2(temp = t_vec, unit = "F")
+f_temps_df
+
+```
+
+
+
+## Functions in the `tidyverse`
+```{r}
+
+f_temps_df %>% 
+  select(fahr, celsius) %>% 
+  mutate(rankine = fahr + 459.67)
+
+```
+
+
+
+```{r}
+
+calc_hotcold <- function(df, thresh = 70) {
+  if(!"fahr" %in% names(df)) stop("The data frame must contain a column called fahr.")
+  
+  out_df <- df %>% 
+    mutate(hotcold = if_else(condition = (fahr > thresh),
+      true = "hot",
+      false = "cold"))
+  
+  return(out_df)
+}
+
+
+# test function
+f_temps_df %>% 
+  select(fahr, celsius) %>% 
+  calc_hotcold(thresh = 55) %>% 
+  arrange(desc(fahr))
+
+```
+
+
+
+# create a custom theme for `ggplot`
+```{r}
+
+make_ggplot_beautiful <- function(base_size = 9) {
+  ggplot2::theme_classic() +
+    ggplot2::theme(
+      text = element_text(family = 'serif',
+                          color = "black",
+                          size = base_size),
+      plot.title = element_text(size = rel(1.25),
+                                hjust = 0.5,
+                                face = 'bold'),
+      panel.background = element_rect(fil = 'azure')
+    )
+}
+
+```
+
+
+```{r}
+
+
+ggplot(f_temps_df, aes(x = fahr, y = celsius, color = kelvin)) +
+  geom_point() +
+  labs(title = 'cool plot') +
+  make_ggplot_beautiful()
+
+
+```
+
+
+
