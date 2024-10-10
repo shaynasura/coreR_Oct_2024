@@ -53,3 +53,185 @@ class(ak_regions)
 
 ```
 
+
+```{r}
+
+head(ak_regions)
+
+glimpse(ak_regions)
+
+st_crs(ak_regions)
+
+```
+
+
+WGS 84 is an unprojected CRS.
+
+EPSG code is used to refer to a CRS.
+We will be using EPGS code 3338, which refers to the Alaska Albers projection.
+
+
+## Transforming CRS
+
+```{r}
+
+ak_regions_3338 <- ak_regions %>%
+    st_transform(crs = 3338)
+
+# check the CRS again now
+st_crs(ak_regions_3338)
+
+# quick plot
+plot(ak_regions_3338)
+
+```
+
+
+## `sf` and the `tidyverse`
+
+```{r}
+
+ak_regions_3338 %>% 
+  select(region)
+
+```
+
+### filter for a specific region
+```{r}
+
+# check for unique regions
+unique(ak_regions_3338$region)
+
+ak_regions_3338 %>% 
+  filter(region == "Southeast")
+
+```
+
+
+# Spatial Joins
+
+Read the population data
+```{r}
+
+pop <- read_csv(here("data","alaska_population.csv"))
+
+head(pop)
+class(pop)
+
+```
+
+
+Convert pop data into a spatial object
+WGS 84 EPGS code is 4326.
+```{r}
+
+pop_4326 <- st_as_sf(pop,
+                     coords = c("lng","lat"),
+                     crs = 4326,
+                     remove = FALSE)
+
+head(pop_4326)
+
+```
+
+
+
+Joining population data with region data
+```{r}
+
+pop_joined <- st_join(pop_4326,
+                      ak_regions_3338,
+                      join = st_within)
+
+## these two datasets are not in the same CRS, so need to transform so they are the same first.
+```
+
+Transform pop data into Alaska Albers
+
+```{r}
+
+pop_3338 <- st_transform(pop_4326,
+                         crs = 3338)
+
+st_crs(pop_3338)
+```
+
+
+
+Try joining population data with region data again once they have the same CRS
+```{r}
+
+pop_joined <- st_join(pop_3338,
+                      ak_regions_3338,
+                      join = st_within)
+
+head(pop_joined)
+
+```
+
+
+Calculate the total population within regions of Alaska based on the population data by city
+```{r}
+
+pop_region <- pop_joined %>% 
+  as.data.frame() %>% 
+  group_by(region) %>% 
+  summarize(total_pop = sum(population))
+
+pop_region
+class(pop_region)
+
+```
+
+
+Join the total population data back to the `ak_region` spatial data
+Because we want to plot the regions and color code them by total population
+```{r}
+
+pop_region_3338 <- left_join(ak_regions_3338,
+                             pop_region,
+                             by = "region")
+
+plot(pop_region_3338["total_pop"])
+
+```
+
+
+Calculate total population by Management Area
+```{r}
+
+pop_mgmt_3338 <- pop_region_3338 %>% 
+  group_by(mgmt_area) %>% 
+  summarize(total_pop_mgmt = sum(total_pop))
+
+plot(pop_mgmt_3338["total_pop_mgmt"])
+
+
+pop_mgmt_3338 <- pop_region_3338 %>% 
+  group_by(mgmt_area) %>% 
+  summarize(total_pop_mgmt = sum(total_pop),
+            do_union = FALSE)  # this argument tells it not to combine the polygons
+
+plot(pop_mgmt_3338["total_pop_mgmt"])
+
+```
+
+
+## Visualize with ggplot
+
+```{r}
+
+ggplot(data = pop_region_3338) +
+  geom_sf(aes(fill = total_pop)) +
+  labs(fill = "Total Population") +
+  scale_fill_continuous(low = "khaki",
+                        high = "firebrick",
+                        labels = comma) +
+  theme_bw()
+
+```
+
+
+
+
+`tmap`, `ggplot1`, and `cowplot` for making maps and doing inset maps.
