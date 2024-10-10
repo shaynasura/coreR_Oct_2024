@@ -1,0 +1,53 @@
+---
+title: "intro_to_spatial_data"
+author: "Shayna A. Sura"
+format: html
+---
+
+
+```{r}
+
+library(tidyverse)
+library(sf)
+library(utils)
+
+
+library(readr)
+library(sf)
+library(ggplot2)
+library(leaflet)
+library(scales)
+library(ggspatial)
+library(dplyr)
+library(here)
+
+```
+
+
+
+## 
+
+
+```{r}
+
+knb_url <- "https://dev.nceas.ucsb.edu/knb/d1/mn/v2/object/urn%3Auuid%3Aaceaecb2-1ce0-4d41-a839-d3607d32bb58"
+
+download.file(url = knb_url, destfile = '../shapefile_demo_data.zip')
+
+unzip('../shapefile_demo_data.zip', exdir = '../data')
+
+file.remove('../shapefile_demo_data.zip')
+
+```
+
+
+## Read Region Data
+
+```{r}
+
+ak_regions <- read_sf(here("data", "ak_regions_simp.shp"))
+
+plot(ak_regions)
+
+```
+
