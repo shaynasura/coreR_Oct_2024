@@ -49,5 +49,7 @@ ak_regions <- read_sf(here("data", "ak_regions_simp.shp"))
 
 plot(ak_regions)
 
+class(ak_regions)
+
 ```
 
